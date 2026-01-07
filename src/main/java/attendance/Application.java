@@ -1,7 +1,12 @@
 package attendance;
 
+import attendance.config.AppConfig;
+import attendance.controller.AttendanceController;
+
 public class Application {
     public static void main(String[] args) {
-        // TODO: 프로그램 구현
+        AppConfig appConfig = new AppConfig();
+        AttendanceController controller = appConfig.attendanceController();
+        controller.start();
     }
 }
