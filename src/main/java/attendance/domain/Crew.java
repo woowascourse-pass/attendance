@@ -17,6 +17,10 @@ import java.util.TreeMap;
 public class Crew {
     private final String name;
     private final Map<LocalDateTime, Status> attendance = new TreeMap<>();
+    private int attend = 0;
+    private int late = 0;
+    private int absent = 0;
+    private StudentStatus studentStatus;
 
     public Crew(String name) {
         this.name = name;
@@ -33,18 +37,65 @@ public class Crew {
         DayOfWeek dayOfWeek = localDateTime.getDayOfWeek();
         LocalTime attendTime = LocalTime.of(localDateTime.getHour(), localDateTime.getMinute());
 
-        // TODO : 시간 남으면 이 똑같은 로직 메소드 추출
         // 월요일 이면 13:00 ~ 18:00 까지
         if (dayOfWeek == DayOfWeek.MONDAY) {
             // 로직 처리
-            Status status = AttendanceTime.checkStatus(dayOfWeek, attendTime);
-            attendance.put(localDateTime, status);
-            return status;
+            return getStatus(localDateTime, dayOfWeek, attendTime);
         }
         // 화 ~ 금 이면 10:00 ~ 18:00 까지
+        return getStatus(localDateTime, dayOfWeek, attendTime);
+    }
+
+
+    public void checkAndAdd(LocalDateTime now) {
+        // 2일 부터 오늘까지
+        for (int i = 2; i <= 13; i++) {
+            LocalDate today = LocalDate.of(2024, 12, i);
+
+            boolean match = isMatch(today);
+
+            if (match) {
+                continue;
+            }
+
+            boolean weekend = AttendanceTime.checkWeekend(today);
+
+            if (weekend) {
+                continue;
+            }
+
+            // 없는 날짜는 결석으로 처리
+            attendance.put(LocalDateTime.of(today, LocalTime.of(0, 0)), Status.ABSENT);
+            addCount(Status.ABSENT);
+            studentStatus = StudentStatus.calculateStudentStatus(absent);
+        }
+    }
+
+    private Status getStatus(LocalDateTime localDateTime, DayOfWeek dayOfWeek, LocalTime attendTime) {
         Status status = AttendanceTime.checkStatus(dayOfWeek, attendTime);
         attendance.put(localDateTime, status);
+        addCount(status);
+        studentStatus = StudentStatus.calculateStudentStatus(absent);
         return status;
+    }
+
+    private void addCount(Status status) {
+        if (status == Status.ATTENDANCE) {
+            attend++;
+            return;
+        }
+
+        if (status == Status.LATE) {
+            late++;
+            if (late % 3 == 0) {
+                absent++;
+            }
+            return;
+        }
+
+        if (status == Status.ABSENT) {
+            absent++;
+        }
     }
 
     private void validateCampusTime(LocalDateTime localDateTime) {
@@ -99,27 +150,29 @@ public class Crew {
         List<AttendResultDTO> records = new ArrayList<>();
 
         // 2일 부터 오늘까지
-        for (int i = 2; i <= now.getDayOfMonth(); i++) {
+        for (int i = 2; i <= 13; i++) {
             LocalDate today = LocalDate.of(2024, 12, i);
 
-            boolean match = isMatch(today);
-
-            if (match) {
+            if(isMatch(today)) {
                 LocalDateTime time = getTime(today);
-                records.add(new AttendResultDTO(time, attendance.get(time), true));
-                continue;
-            }
 
-            //없으면 빈 걸로 넣어야됨.
-            records.add(
-                    new AttendResultDTO(
-                            LocalDateTime.of(today, LocalTime.of(0, 0)),
-                            Status.ABSENT,
-                            false)
-            );
+                LocalTime localTime = time.toLocalTime();
+
+                if (localTime.getHour() == 0 && localTime.getMinute() == 0) {
+                    records.add(new AttendResultDTO(time, attendance.get(time), false));
+                    continue;
+                }
+
+                records.add(new AttendResultDTO(time, attendance.get(time), true));
+            }
         }
 
-        return new AttendRecordDTO(name, records);
+        String stringStudentStatus = "";
+        if (studentStatus != null) {
+            stringStudentStatus = studentStatus.getStatus();
+        }
+
+        return new AttendRecordDTO(name, records, attend, late, absent, stringStudentStatus);
     }
 
     private LocalDateTime getTime(LocalDate today) {

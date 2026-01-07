@@ -73,6 +73,20 @@ public enum AttendanceTime {
         }
     }
 
+    public static boolean checkWeekend(LocalDate today) {
+
+        //25일은 휴일 처리해야함....
+        if (today.getDayOfMonth() == 25) {
+            return true;
+        }
+
+        if (today.getDayOfWeek() == DayOfWeek.SATURDAY || today.getDayOfWeek() == DayOfWeek.SUNDAY) {
+            return true;
+        }
+
+        return false;
+    }
+
     private static Status getStatusByDayOfWeek(LocalTime startTime, LocalTime attendTime) {
         Duration between = Duration.between(startTime, attendTime);
         return Status.getStatus((int) between.toMinutes());

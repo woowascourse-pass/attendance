@@ -14,6 +14,10 @@ public class OutputView {
     private static final String ATTEND_RESULT = "%d월 %d일 %s요일 %s:%s (%s)";
     private static final String MODIFY_RESULT = "%d월 %d일 %s요일 %s:%s (%s) -> %d:%d (%s) 수정 완료!";
     private static final String START_ATTEND_RECORD = "이번 달 %s의 출석 기록입니다.";
+    private static final String ATTEND = "출석: %d회";
+    private static final String LATE = "지각: %d회";
+    private static final String ABSENT = "결석: %d회";
+    private static final String TARGET = "%s 대상자입니다.";
 
     public void printGreeting(LocalDateTime now) {
         System.out.printf(GREETING + "\n",
@@ -34,13 +38,7 @@ public class OutputView {
 
     public void printAttendResult(AttendResultDTO result) {
         System.out.println();
-        System.out.printf(ATTEND_RESULT + "\n",
-                result.now().getMonthValue(),
-                result.now().getDayOfMonth(),
-                parseDayOfWeek(result.now().getDayOfWeek()),
-                result.now().getHour(),
-                result.now().getMinute(),
-                result.status().getStatus());
+        printTimeExists(result);
     }
 
     public void printModifyAttendResult(ModifyAttendResultDTO result) {
@@ -67,15 +65,37 @@ public class OutputView {
                 printTimeNotExists(record);
                 continue;
             }
-            System.out.printf(ATTEND_RESULT + "\n",
-                    record.now().getMonthValue(),
-                    record.now().getDayOfMonth(),
-                    parseDayOfWeek(record.now().getDayOfWeek()),
-                    record.now().getHour(),
-                    record.now().getMinute(),
-                    record.status().getStatus());
+            printTimeExists(record);
         }
 
+        printStatus(result);
+
+        printStudentStatus(result);
+    }
+
+    private void printStudentStatus(AttendRecordDTO result) {
+        if (!result.studentStatus().isBlank()) {
+            System.out.println();
+            System.out.printf(TARGET + "\n", result.studentStatus());
+            System.out.println();
+        }
+    }
+
+    private void printStatus(AttendRecordDTO result) {
+        System.out.println();
+        System.out.printf(ATTEND + "\n", result.attend());
+        System.out.printf(LATE + "\n", result.late());
+        System.out.printf(ABSENT + "\n", result.absent());
+    }
+
+    private void printTimeExists(AttendResultDTO record) {
+        System.out.printf(ATTEND_RESULT + "\n",
+                record.now().getMonthValue(),
+                record.now().getDayOfMonth(),
+                parseDayOfWeek(record.now().getDayOfWeek()),
+                record.now().getHour(),
+                record.now().getMinute(),
+                record.status().getStatus());
     }
 
     private void printTimeNotExists(AttendResultDTO record) {

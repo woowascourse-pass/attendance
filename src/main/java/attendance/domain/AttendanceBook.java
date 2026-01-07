@@ -6,6 +6,7 @@ import attendance.dto.CrewDTO;
 import attendance.dto.ModifyAttendResultDTO;
 import attendance.message.ErrorMessage;
 import attendance.util.InputFileReader;
+import camp.nextstep.edu.missionutils.DateTimes;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
@@ -24,6 +25,10 @@ public class AttendanceBook {
 
         for (CrewDTO crewDTO : crewDTOS) {
             createOrAddAttendance(crewDTO);
+        }
+
+        for (Crew crew : crews) {
+            crew.checkAndAdd(DateTimes.now());
         }
     }
 
