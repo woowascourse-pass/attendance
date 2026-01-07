@@ -3,6 +3,7 @@ package attendance.domain;
 import attendance.message.ErrorMessage;
 import java.time.DayOfWeek;
 import java.time.Duration;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.Arrays;
@@ -47,13 +48,28 @@ public enum AttendanceTime {
     }
 
     public static void checkWeekend(LocalDateTime now) {
+        LocalDate date = now.toLocalDate();
+
         //25일은 휴일 처리해야함....
         if (now.getDayOfMonth() == 25) {
-            throw new IllegalArgumentException(format(now));
+            throw new IllegalArgumentException(format(date));
         }
 
         if (now.getDayOfWeek() == DayOfWeek.SATURDAY || now.getDayOfWeek() == DayOfWeek.SUNDAY) {
-            throw new IllegalArgumentException(format(now));
+            throw new IllegalArgumentException(format(date));
+        }
+    }
+
+    public static void checkWeekend(LocalDateTime now, int date) {
+        LocalDate newDate = LocalDate.of(now.getYear(), now.getMonthValue(), date);
+
+        //25일은 휴일 처리해야함....
+        if (date == 25) {
+            throw new IllegalArgumentException(format(newDate));
+        }
+
+        if (now.getDayOfWeek() == DayOfWeek.SATURDAY || now.getDayOfWeek() == DayOfWeek.SUNDAY) {
+            throw new IllegalArgumentException(format(newDate));
         }
     }
 
@@ -62,7 +78,7 @@ public enum AttendanceTime {
         return Status.getStatus((int) between.toMinutes());
     }
 
-    private static String format(LocalDateTime now) {
+    private static String format(LocalDate now) {
         return String.format(ErrorMessage.NOT_ATTEND_DAY.getMessage(),
                 now.getMonthValue(),
                 now.getDayOfMonth(),
