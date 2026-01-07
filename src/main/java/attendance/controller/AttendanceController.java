@@ -2,6 +2,7 @@ package attendance.controller;
 
 import attendance.domain.AttendanceBook;
 import attendance.domain.AttendanceTime;
+import attendance.dto.AttendRecordDTO;
 import attendance.dto.AttendResultDTO;
 import attendance.dto.ModifyAttendResultDTO;
 import attendance.util.InputFileReader;
@@ -43,12 +44,28 @@ public class AttendanceController {
             }
 
             if (number == 3) {
-
+                shouldContinue = showCrewAttendanceRecord(now);
             }
 
             if (number == 4) {
 
             }
+        }
+    }
+
+    private boolean showCrewAttendanceRecord(LocalDateTime now) {
+        try {
+            String name = inputView.readName();
+            String crewName = attendanceBook.validateCrewName(name);
+
+            AttendRecordDTO result = attendanceBook.getAttendanceRecord(crewName, now);
+
+            outputView.printAttendanceRecord(result);
+
+            return true;
+        } catch (IllegalArgumentException e) {
+            outputView.printError(e.getMessage());
+            return false;
         }
     }
 
