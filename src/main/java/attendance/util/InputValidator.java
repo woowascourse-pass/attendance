@@ -1,6 +1,7 @@
 package attendance.util;
 
 import attendance.message.ErrorMessage;
+import java.time.LocalDateTime;
 
 public class InputValidator {
     public static String validateSelectedFunction(String input) {
@@ -30,6 +31,18 @@ public class InputValidator {
             validateParsedInput(parseInput);
         } catch (NumberFormatException e) {
             throw new IllegalArgumentException(ErrorMessage.INVALID_INPUT.getMessage());
+        }
+    }
+
+    public static void validateDate(int parseDate) {
+        if (parseDate < 1 || 31 < parseDate) {
+            throw new IllegalArgumentException(ErrorMessage.INVALID_INPUT.getMessage());
+        }
+    }
+
+    public static void validateTime(LocalDateTime now, int date) {
+        if (now.getDayOfMonth() < date) {
+            throw new IllegalArgumentException(ErrorMessage.FUTURE_ATTEND_NOT_POSSIBLE.getMessage());
         }
     }
 }
