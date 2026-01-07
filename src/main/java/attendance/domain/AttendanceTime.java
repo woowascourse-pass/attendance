@@ -3,6 +3,7 @@ package attendance.domain;
 import attendance.message.ErrorMessage;
 import java.time.DayOfWeek;
 import java.time.Duration;
+import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.Arrays;
 
@@ -12,8 +13,8 @@ public enum AttendanceTime {
     WEDNESDAY(LocalTime.of(10, 0, 0), LocalTime.of(18, 0, 0), DayOfWeek.WEDNESDAY, "수"),
     THURSDAY(LocalTime.of(10, 0, 0), LocalTime.of(18, 0, 0), DayOfWeek.THURSDAY, "목"),
     FRIDAY(LocalTime.of(10, 0, 0), LocalTime.of(18, 0, 0), DayOfWeek.FRIDAY, "금"),
-    SATURDAY(LocalTime.of(10, 0, 0), LocalTime.of(18, 0, 0), DayOfWeek.SATURDAY, "토"),
-    SUNDAY(LocalTime.of(10, 0, 0), LocalTime.of(18, 0, 0), DayOfWeek.SUNDAY, "일"),
+    SATURDAY(null, null, DayOfWeek.SATURDAY, "토"),
+    SUNDAY(null, null, DayOfWeek.SUNDAY, "일"),
     ;
 
     private final LocalTime startTime;
@@ -45,8 +46,27 @@ public enum AttendanceTime {
         return found.koreanDayOfWeek;
     }
 
+    public static void checkWeekend(LocalDateTime now) {
+        //25일은 휴일 처리해야함....
+        if (now.getDayOfMonth() == 25) {
+            throw new IllegalArgumentException(format(now));
+        }
+
+        if (now.getDayOfWeek() == DayOfWeek.SATURDAY || now.getDayOfWeek() == DayOfWeek.SUNDAY) {
+            throw new IllegalArgumentException(format(now));
+        }
+    }
+
     private static Status getStatusByDayOfWeek(LocalTime startTime, LocalTime attendTime) {
         Duration between = Duration.between(startTime, attendTime);
         return Status.getStatus((int) between.toMinutes());
+    }
+
+    private static String format(LocalDateTime now) {
+        return String.format(ErrorMessage.NOT_ATTEND_DAY.getMessage(),
+                now.getMonthValue(),
+                now.getDayOfMonth(),
+                AttendanceTime.getKoreanDayOfWeek(now.getDayOfWeek())
+        );
     }
 }
