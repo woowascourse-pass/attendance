@@ -1,5 +1,6 @@
 package attendance.domain;
 
+import attendance.dto.AttendRecordDTO;
 import attendance.dto.AttendResultDTO;
 import attendance.dto.CrewDTO;
 import attendance.dto.ModifyAttendResultDTO;
@@ -55,7 +56,7 @@ public class AttendanceBook {
         Crew crew = validateAttend(name, now);
         // 여기 왔다는 건 이미 이 이름이 존재하고, 이 now로 출석한 적 없다는 의미
         Status status = crew.attend(now);
-        return new AttendResultDTO(now, status);
+        return new AttendResultDTO(now, status, true);
     }
 
     public String validateCrewName(String name) {
@@ -87,5 +88,17 @@ public class AttendanceBook {
         Crew crew = foundCrew.get();
 
         return crew.modifyAttend(parsedAttendTime);
+    }
+
+    public AttendRecordDTO getAttendanceRecord(String crewName, LocalDateTime now) {
+
+        Optional<Crew> foundCrew = foundCrew(crewName);
+        if (foundCrew.isEmpty()) {
+            throw new IllegalArgumentException(ErrorMessage.NICKNAME_NOT_FOUND.getMessage());
+        }
+
+        Crew crew = foundCrew.get();
+
+        return crew.getAttendanceRecord(now);
     }
 }

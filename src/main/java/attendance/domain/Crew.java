@@ -1,10 +1,15 @@
 package attendance.domain;
 
+import attendance.dto.AttendRecordDTO;
+import attendance.dto.AttendResultDTO;
 import attendance.dto.ModifyAttendResultDTO;
 import attendance.message.ErrorMessage;
 import java.time.DayOfWeek;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.TreeMap;
@@ -22,6 +27,7 @@ public class Crew {
     }
 
     public Status attend(LocalDateTime localDateTime) {
+        validateAttend(localDateTime);
         validateCampusTime(localDateTime);
         // 날짜 확인
         DayOfWeek dayOfWeek = localDateTime.getDayOfWeek();
@@ -86,5 +92,50 @@ public class Crew {
         Status newStatus = attend(modifyTime);
 
         return new ModifyAttendResultDTO(beforeTime, beforeStatus, modifyTime, newStatus);
+    }
+
+    public AttendRecordDTO getAttendanceRecord(LocalDateTime now) {
+
+        List<AttendResultDTO> records = new ArrayList<>();
+
+        // 2일 부터 오늘까지
+        for (int i = 2; i <= now.getDayOfMonth(); i++) {
+            LocalDate today = LocalDate.of(2024, 12, i);
+
+            boolean match = isMatch(today);
+
+            if (match) {
+                LocalDateTime time = getTime(today);
+                records.add(new AttendResultDTO(time, attendance.get(time), true));
+                continue;
+            }
+
+            //없으면 빈 걸로 넣어야됨.
+            records.add(
+                    new AttendResultDTO(
+                            LocalDateTime.of(today, LocalTime.of(0, 0)),
+                            Status.ABSENT,
+                            false)
+            );
+        }
+
+        return new AttendRecordDTO(name, records);
+    }
+
+    private LocalDateTime getTime(LocalDate today) {
+        return attendance.keySet().stream()
+                .filter(key ->
+                        key.getYear() == today.getYear()
+                                && key.getMonth() == today.getMonth()
+                                && key.getDayOfMonth() == today.getDayOfMonth())
+                .findFirst().get();
+    }
+
+    private boolean isMatch(LocalDate today) {
+        return attendance.keySet().stream()
+                .anyMatch(key ->
+                        key.getYear() == today.getYear()
+                                && key.getMonth() == today.getMonth()
+                                && key.getDayOfMonth() == today.getDayOfMonth());
     }
 }
