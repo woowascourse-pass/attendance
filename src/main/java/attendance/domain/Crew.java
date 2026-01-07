@@ -1,10 +1,12 @@
 package attendance.domain;
 
+import attendance.dto.ModifyAttendResultDTO;
 import attendance.message.ErrorMessage;
 import java.time.DayOfWeek;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.Map;
+import java.util.Optional;
 import java.util.TreeMap;
 
 public class Crew {
@@ -20,6 +22,7 @@ public class Crew {
     }
 
     public Status attend(LocalDateTime localDateTime) {
+        validateCampusTime(localDateTime);
         // 날짜 확인
         DayOfWeek dayOfWeek = localDateTime.getDayOfWeek();
         LocalTime attendTime = LocalTime.of(localDateTime.getHour(), localDateTime.getMinute());
@@ -38,6 +41,14 @@ public class Crew {
         return status;
     }
 
+    private void validateCampusTime(LocalDateTime localDateTime) {
+        LocalTime now = localDateTime.toLocalTime();
+
+        if (now.isBefore(LocalTime.of(8, 0)) || now.isAfter(LocalTime.of(23, 0))) {
+            throw new IllegalArgumentException(ErrorMessage.CAMPUS_NOT_OPEN.getMessage());
+        }
+    }
+
     public void validateAttend(LocalDateTime now) {
         // 년도, 월, 일 비교
         boolean match = attendance.keySet().stream()
@@ -49,5 +60,31 @@ public class Crew {
         if (match) {
             throw new IllegalArgumentException(ErrorMessage.ALREADY_ATTEND.getMessage());
         }
+    }
+
+    public ModifyAttendResultDTO modifyAttend(LocalDateTime modifyTime) {
+        // 없으면 만들고
+        Optional<LocalDateTime> found = attendance.keySet().stream()
+                .filter(key ->
+                        key.getYear() == modifyTime.getYear()
+                                && key.getMonth() == modifyTime.getMonth()
+                                && key.getDayOfMonth() == modifyTime.getDayOfMonth())
+                .findFirst();
+
+        if (found.isEmpty()) {
+            //새로 만들어서 넣기
+            Status newStatus = attend(modifyTime);
+            return new ModifyAttendResultDTO(null, Status.ABSENT, modifyTime, newStatus);
+        }
+
+        // 있는 경우는 해당 키 삭제하고 modifyTime으로 다시 넣고 출석 상태로 바꾸기
+        LocalDateTime beforeTime = found.get();
+        Status beforeStatus = attendance.get(beforeTime);
+
+        attendance.remove(beforeTime);
+
+        Status newStatus = attend(modifyTime);
+
+        return new ModifyAttendResultDTO(beforeTime, beforeStatus, modifyTime, newStatus);
     }
 }

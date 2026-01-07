@@ -2,6 +2,7 @@ package attendance.domain;
 
 import attendance.dto.AttendResultDTO;
 import attendance.dto.CrewDTO;
+import attendance.dto.ModifyAttendResultDTO;
 import attendance.message.ErrorMessage;
 import attendance.util.InputFileReader;
 import java.time.LocalDateTime;
@@ -73,5 +74,18 @@ public class AttendanceBook {
         // 이미 출석 했는지 여부
         crew.validateAttend(now);
         return crew;
+    }
+
+    public ModifyAttendResultDTO modifyAttend(String crewName, LocalDateTime parsedAttendTime) {
+        // 여기까지 온건 이미 이 이름으로 존재한다는 의미;
+        // 그래도 방어적
+        Optional<Crew> foundCrew = foundCrew(crewName);
+        if (foundCrew.isEmpty()) {
+            throw new IllegalArgumentException(ErrorMessage.NICKNAME_NOT_FOUND.getMessage());
+        }
+
+        Crew crew = foundCrew.get();
+
+        return crew.modifyAttend(parsedAttendTime);
     }
 }
