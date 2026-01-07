@@ -1,16 +1,19 @@
 package attendance.view;
 
 import attendance.domain.AttendanceTime;
+import attendance.dto.AttendRecordDTO;
 import attendance.dto.AttendResultDTO;
 import attendance.dto.ModifyAttendResultDTO;
 import java.time.DayOfWeek;
 import java.time.LocalDateTime;
+import java.util.List;
 
 public class OutputView {
 
     private static final String GREETING = "오늘은 %d월 %d일 %s요일입니다. 기능을 선택해 주세요.";
-    private static final String ATTEND_RESULT = "%d월 %d일 %s요일 %d:%d (%s)";
+    private static final String ATTEND_RESULT = "%d월 %d일 %s요일 %s:%s (%s)";
     private static final String MODIFY_RESULT = "%d월 %d일 %s요일 %s:%s (%s) -> %d:%d (%s) 수정 완료!";
+    private static final String START_ATTEND_RECORD = "이번 달 %s의 출석 기록입니다.";
 
     public void printGreeting(LocalDateTime now) {
         System.out.printf(GREETING + "\n",
@@ -52,6 +55,38 @@ public class OutputView {
                 result.afterTime().getHour(),
                 result.afterTime().getMinute(),
                 result.afterStatus().getStatus());
+    }
+
+    public void printAttendanceRecord(AttendRecordDTO result) {
+        System.out.println();
+        System.out.printf(START_ATTEND_RECORD + "\n", result.name());
+        List<AttendResultDTO> records = result.record();
+
+        for (AttendResultDTO record : records) {
+            if (!record.timeExist()) {
+                printTimeNotExists(record);
+                continue;
+            }
+            System.out.printf(ATTEND_RESULT + "\n",
+                    record.now().getMonthValue(),
+                    record.now().getDayOfMonth(),
+                    parseDayOfWeek(record.now().getDayOfWeek()),
+                    record.now().getHour(),
+                    record.now().getMinute(),
+                    record.status().getStatus());
+        }
+
+    }
+
+    private void printTimeNotExists(AttendResultDTO record) {
+        System.out.printf(ATTEND_RESULT + "\n",
+                record.now().getMonthValue(),
+                record.now().getDayOfMonth(),
+                parseDayOfWeek(record.now().getDayOfWeek()),
+                "--",
+                "--",
+                record.status().getStatus()
+        );
     }
 
     private Object printBeforeMinute(LocalDateTime beforeTime) {
