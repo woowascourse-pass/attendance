@@ -3,6 +3,7 @@ package attendance.controller;
 import attendance.domain.AttendanceBook;
 import attendance.domain.AttendanceTime;
 import attendance.dto.AttendResultDTO;
+import attendance.dto.ModifyAttendResultDTO;
 import attendance.util.InputFileReader;
 import attendance.util.InputValidator;
 import attendance.util.Parser;
@@ -38,7 +39,7 @@ public class AttendanceController {
             }
 
             if (number == 2) {
-
+                shouldContinue = modifyAttendance(now);
             }
 
             if (number == 3) {
@@ -48,6 +49,31 @@ public class AttendanceController {
             if (number == 4) {
 
             }
+        }
+    }
+
+    private boolean modifyAttendance(LocalDateTime now) {
+        try {
+            String name = inputView.readName();
+            String crewName = attendanceBook.validateCrewName(name);
+
+            String parsedDate = inputView.readModifyDate();
+            int date = Parser.parseDate(parsedDate);
+            // 이 날이 휴일인지 여부
+            InputValidator.validateTime(now, date);
+            AttendanceTime.checkWeekend(now, date);
+
+            String rawTime = inputView.readModifyTime();
+            LocalDateTime parsedAttendTime = Parser.parseTime(now, rawTime);
+
+            ModifyAttendResultDTO result = attendanceBook.modifyAttend(crewName, parsedAttendTime);
+
+            outputView.printModifyAttendResult(result);
+
+            return true;
+        } catch (IllegalArgumentException e) {
+            outputView.printError(e.getMessage());
+            return false;
         }
     }
 
