@@ -1,7 +1,5 @@
 package attendance.domain;
 
-import java.time.LocalTime;
-
 public enum Status {
     ATTENDANCE("출석"),
     LATE("지각"),
@@ -24,5 +22,9 @@ public enum Status {
         }
 
         return ATTENDANCE;
+    }
+
+    public String getStatus() {
+        return status;
     }
 }
