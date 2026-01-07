@@ -28,4 +28,14 @@ public class Parser {
             throw new IllegalArgumentException(ErrorMessage.INVALID_INPUT.getMessage());
         }
     }
+
+    public static int parseDate(String date) {
+        try{
+            int parsedDate = Integer.parseInt(date);
+            InputValidator.validateDate(parsedDate);
+            return parsedDate;
+        } catch (NumberFormatException e) {
+            throw new IllegalArgumentException(ErrorMessage.INVALID_INPUT.getMessage());
+        }
+    }
 }
