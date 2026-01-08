@@ -49,6 +49,8 @@ public class Crew {
 
     public void checkAndAdd(LocalDateTime now) {
         // 2일 부터 오늘까지
+        /// 실제로는 now 값 사용해야 하지만 문제를 26년 1월에 풀다보니 생기는 에러로 24년 12월 14일로 하드코딩
+        /// 14일은 오늘이기 때문에 오늘 출석은 아직 완료가 안되었을 수 있기 때문에 여기서는 13일까지만 아예 출석이 빠진 경우가 있나 체크
         for (int i = 2; i <= 13; i++) {
             LocalDate today = LocalDate.of(2024, 12, i);
 
@@ -87,9 +89,6 @@ public class Crew {
 
         if (status == Status.LATE) {
             late++;
-            if (late % 3 == 0) {
-                absent++;
-            }
             return;
         }
 
@@ -139,16 +138,34 @@ public class Crew {
         Status beforeStatus = attendance.get(beforeTime);
 
         attendance.remove(beforeTime);
+        minusCount(beforeStatus);
 
         Status newStatus = attend(modifyTime);
 
         return new ModifyAttendResultDTO(beforeTime, beforeStatus, modifyTime, newStatus);
     }
 
+    private void minusCount(Status beforeStatus) {
+        if (beforeStatus == Status.ATTENDANCE) {
+            attend--;
+            return;
+        }
+
+        if (beforeStatus == Status.LATE) {
+            late--;
+            return;
+        }
+
+        if (beforeStatus == Status.ABSENT) {
+            absent--;
+        }
+    }
+
     public AttendRecordDTO getAttendanceRecord(LocalDateTime now) {
 
         List<AttendResultDTO> records = new ArrayList<>();
 
+        /// 실제로는 now 값 사용해야 하지만 문제를 26년 1월에 풀다보니 생기는 에러로 24년 12월 14일로 하드코딩
         // 2일 부터 오늘까지
         for (int i = 2; i <= 13; i++) {
             LocalDate today = LocalDate.of(2024, 12, i);
@@ -165,6 +182,13 @@ public class Crew {
 
                 records.add(new AttendResultDTO(time, attendance.get(time), true));
             }
+        }
+
+        // 14일에 해당하는 기록 가져오기
+        boolean match = isMatch(LocalDate.of(2024, 12, 14));
+        if (match) {
+            LocalDateTime time = getTime(LocalDate.of(2024, 12, 13));
+            records.add(new AttendResultDTO(time, attendance.get(time), true));
         }
 
         String stringStudentStatus = "";

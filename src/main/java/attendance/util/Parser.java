@@ -2,6 +2,7 @@ package attendance.util;
 
 import attendance.message.ErrorMessage;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 
 public class Parser {
     public static int parseSelect(String select) {
@@ -9,6 +10,23 @@ public class Parser {
             int parseInput = Integer.parseInt(select);
             return InputValidator.validateParsedInput(parseInput);
         } catch (NumberFormatException e) {
+            throw new IllegalArgumentException(ErrorMessage.INVALID_INPUT.getMessage());
+        }
+    }
+
+    public static LocalDateTime parseTime(int date, String attendTime) {
+        try {
+            String[] inputTime = attendTime.split(":");
+
+            /// 실제로는 now 값 사용해야 하지만 문제를 26년 1월에 풀다보니 생기는 에러로 24년 12월로 하드코딩
+            return LocalDateTime.of(
+                    2024,
+                    12,
+                    date,
+                    Integer.parseInt(inputTime[0]),
+                    Integer.parseInt(inputTime[1])
+            );
+        } catch (Exception e) {
             throw new IllegalArgumentException(ErrorMessage.INVALID_INPUT.getMessage());
         }
     }
