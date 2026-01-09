@@ -1,129 +1,113 @@
 package attendance.controller;
 
-import attendance.domain.AttendanceBook;
 import attendance.domain.AttendanceTime;
 import attendance.dto.AttendRecordDTO;
 import attendance.dto.AttendResultDTO;
+import attendance.dto.ExpelledRiskDTO;
 import attendance.dto.ModifyAttendResultDTO;
-import attendance.util.InputFileReader;
+import attendance.service.AttendanceService;
 import attendance.util.InputValidator;
 import attendance.util.Parser;
 import attendance.view.InputView;
 import attendance.view.OutputView;
 import camp.nextstep.edu.missionutils.DateTimes;
 import java.time.LocalDateTime;
+import java.util.List;
 
 public class AttendanceController {
 
     private static final String END = "Q";
+    private static final String ATTEND = "1";
 
     private final InputView inputView;
     private final OutputView outputView;
-    private final AttendanceBook attendanceBook;
+    private final AttendanceService attendanceService;
 
-    public AttendanceController(InputView inputView, OutputView outputView, InputFileReader inputFileReader) {
+    public AttendanceController(InputView inputView, OutputView outputView, AttendanceService attendanceService) {
         this.inputView = inputView;
         this.outputView = outputView;
-        this.attendanceBook = new AttendanceBook(inputFileReader);
+        this.attendanceService = attendanceService;
     }
 
     public void start() {
         String select;
         LocalDateTime now;
-        boolean shouldContinue = true;
-        while (shouldContinue && !((select = readFunction(now = DateTimes.now())).equals(END))) {
+        while (!((select = readFunction(now = DateTimes.now())).equals(END))) {
 
             int number = Parser.parseSelect(select);
 
             if (number == 1) {
-                shouldContinue = attendanceCheck(now);
+                attendanceCheck(now);
+                continue;
             }
 
             if (number == 2) {
-                shouldContinue = modifyAttendance(now);
+                modifyAttendance(now);
+                continue;
             }
 
             if (number == 3) {
-                shouldContinue = showCrewAttendanceRecord(now);
+                showCrewAttendanceRecord(now);
+                continue;
             }
 
             if (number == 4) {
-
+                showExpelledRiskStudent();
             }
         }
     }
 
-    private boolean showCrewAttendanceRecord(LocalDateTime now) {
-        try {
-            String name = inputView.readName();
-            String crewName = attendanceBook.validateCrewName(name);
-
-            AttendRecordDTO result = attendanceBook.getAttendanceRecord(crewName, now);
-
-            outputView.printAttendanceRecord(result);
-
-            return true;
-        } catch (IllegalArgumentException e) {
-            outputView.printError(e.getMessage());
-            return false;
-        }
+    private void showExpelledRiskStudent() {
+        List<ExpelledRiskDTO> result = attendanceService.getExpelledRiskStudent();
+        outputView.printExpelledRiskStudent(result);
     }
 
-    private boolean modifyAttendance(LocalDateTime now) {
-        try {
-            String name = inputView.readName();
-            String crewName = attendanceBook.validateCrewName(name);
+    private void showCrewAttendanceRecord(LocalDateTime now) {
+        String name = inputView.readName();
+        String crewName = attendanceService.validateCrewName(name);
 
-            String parsedDate = inputView.readModifyDate();
-            int date = Parser.parseDate(parsedDate);
-            // 이 날이 휴일인지 여부
-            InputValidator.validateTime(now, date);
-            AttendanceTime.checkWeekend(now, date);
+        AttendRecordDTO result = attendanceService.getAttendanceRecord(crewName, now);
 
-            String rawTime = inputView.readModifyTime();
-            LocalDateTime parsedAttendTime = Parser.parseTime(now, rawTime);
-
-            ModifyAttendResultDTO result = attendanceBook.modifyAttend(crewName, parsedAttendTime);
-
-            outputView.printModifyAttendResult(result);
-
-            return true;
-        } catch (IllegalArgumentException e) {
-            outputView.printError(e.getMessage());
-            return false;
-        }
+        outputView.printAttendanceRecord(result);
     }
 
-    private boolean attendanceCheck(LocalDateTime now) {
-        try {
-            // 주말 체크
-            AttendanceTime.checkWeekend(now);
-            String name = inputView.readName();
-            // 이름 체크
-            String crewName = attendanceBook.validateCrewName(name);
-            // 이미 출석 했는지 체크
-            attendanceBook.validateAttend(crewName, now);
-            // 등교 시간 입력
-            String attendTime = inputView.readAttendTime();
-            LocalDateTime parsedAttendTime = Parser.parseTime(now, attendTime);
-            // 출석 체크
-            AttendResultDTO result = attendanceBook.attend(crewName, parsedAttendTime);
-            outputView.printAttendResult(result);
-            return true;
-        } catch (IllegalArgumentException e) {
-            outputView.printError(e.getMessage());
-            return false;
-        }
+    private void modifyAttendance(LocalDateTime now) {
+        String name = inputView.readName();
+        String crewName = attendanceService.validateCrewName(name);
+
+        String parsedDate = inputView.readModifyDate();
+        int date = Parser.parseDate(parsedDate);
+        // 이 날이 휴일인지 여부
+        InputValidator.validateTime(now, date);
+        AttendanceTime.checkWeekend(now, date);
+
+        String rawTime = inputView.readModifyTime();
+        LocalDateTime parsedAttendTime = Parser.parseTime(now, date, rawTime);
+
+        ModifyAttendResultDTO result = attendanceService.modifyAttend(crewName, parsedAttendTime);
+
+        outputView.printModifyAttendResult(result);
+    }
+
+    private void attendanceCheck(LocalDateTime now) {
+        // 주말 체크
+        AttendanceTime.checkWeekend(now);
+        String name = inputView.readName();
+        // 이름 체크
+        String crewName = attendanceService.validateCrewName(name);
+        // 이미 출석 했는지 체크
+        attendanceService.validateAttend(crewName, now);
+        // 등교 시간 입력
+        String attendTime = inputView.readAttendTime();
+        LocalDateTime parsedAttendTime = Parser.parseTime(now, attendTime);
+        // 출석 체크
+        AttendResultDTO result = attendanceService.attend(crewName, parsedAttendTime);
+        outputView.printAttendResult(result);
     }
 
     private String readFunction(LocalDateTime now) {
-        try {
-            outputView.printGreeting(now);
-            String selectedFunction = inputView.readFunction();
-            return InputValidator.validateSelectedFunction(selectedFunction);
-        } catch (IllegalArgumentException e) {
-            outputView.printError(e.getMessage());
-            return END;
-        }
+        outputView.printGreeting(now);
+        String selectedFunction = inputView.readFunction();
+        return InputValidator.validateSelectedFunction(selectedFunction);
     }
 }

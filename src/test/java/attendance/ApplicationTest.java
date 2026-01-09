@@ -77,6 +77,23 @@ class ApplicationTest extends NsTest {
         );
     }
 
+    @Test
+    void 제적_위험자_결과_조회() {
+        assertNowTest(
+                () -> {
+                    runException("4");
+                    assertThat(output()).contains(
+                            "제적 위험자 조회 결과",
+                            "- 빙티: 결석 3회, 지각 4회 (면담)",
+                            "- 이든: 결석 2회, 지각 5회 (면담)",
+                            "- 빙봉: 결석 1회, 지각 6회 (면담)",
+                            "- 쿠키: 결석 2회, 지각 3회 (면담)"
+                    );
+                },
+                LocalDate.of(2024, 12, 13).atStartOfDay()
+        );
+    }
+
     @Override
     protected void runMain() {
         Application.main(new String[]{});

@@ -1,15 +1,10 @@
 package attendance.domain;
 
-import attendance.dto.AttendRecordDTO;
-import attendance.dto.AttendResultDTO;
-import attendance.dto.ModifyAttendResultDTO;
 import attendance.message.ErrorMessage;
 import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.TreeMap;
@@ -28,6 +23,18 @@ public class Crew {
 
     public String getName() {
         return name;
+    }
+
+    public int getAttend() {
+        return attend;
+    }
+
+    public int getLate() {
+        return late;
+    }
+
+    public int getAbsent() {
+        return absent;
     }
 
     public Status attend(LocalDateTime localDateTime) {
@@ -49,10 +56,10 @@ public class Crew {
 
     public void checkAndAdd(LocalDateTime now) {
         // 2일 부터 오늘까지
-        /// 실제로는 now 값 사용해야 하지만 문제를 26년 1월에 풀다보니 생기는 에러로 24년 12월 14일로 하드코딩
+        /// 실제로는 time 값 사용해야 하지만 문제를 26년 1월에 풀다보니 생기는 에러로 24년 12월 14일로 하드코딩
         /// 14일은 오늘이기 때문에 오늘 출석은 아직 완료가 안되었을 수 있기 때문에 여기서는 13일까지만 아예 출석이 빠진 경우가 있나 체크
-        for (int i = 2; i <= 13; i++) {
-            LocalDate today = LocalDate.of(2024, 12, i);
+        for (int i = 2; i < now.getDayOfMonth(); i++) {
+            LocalDate today = LocalDate.of(now.getYear(), now.getMonthValue(), i);
 
             boolean match = isMatch(today);
 
@@ -108,29 +115,41 @@ public class Crew {
     public void validateAttend(LocalDateTime now) {
         // 년도, 월, 일 비교
         boolean match = attendance.keySet().stream()
-                .anyMatch(key ->
-                        key.getYear() == now.getYear()
-                                && key.getMonth() == now.getMonth()
-                                && key.getDayOfMonth() == now.getDayOfMonth());
+                .anyMatch(key -> key.toLocalDate().equals(now.toLocalDate()));
 
         if (match) {
             throw new IllegalArgumentException(ErrorMessage.ALREADY_ATTEND.getMessage());
         }
     }
 
-    public ModifyAttendResultDTO modifyAttend(LocalDateTime modifyTime) {
+    public Map.Entry<LocalDateTime, Status> findStatusByTime(LocalDate date) {
+        Optional<LocalDateTime> found = attendance.keySet().stream()
+                .filter(key -> key.toLocalDate().equals(date))
+                .findFirst();
+
+        // 비어있으면 결석 처리이기 때문에 값 넣어줘야함.
+        if (found.isEmpty()) {
+            LocalDateTime absentTime = LocalDateTime.of(date, LocalTime.of(0, 0));
+            attendance.put(absentTime, Status.ABSENT);
+            return Map.entry(absentTime, Status.ABSENT);
+        }
+
+        LocalDateTime foundTime = found.get();
+        Status status = attendance.get(foundTime);
+        return Map.entry(foundTime, status);
+
+    }
+
+    public void modifyAttend(LocalDateTime modifyTime) {
         // 없으면 만들고
         Optional<LocalDateTime> found = attendance.keySet().stream()
-                .filter(key ->
-                        key.getYear() == modifyTime.getYear()
-                                && key.getMonth() == modifyTime.getMonth()
-                                && key.getDayOfMonth() == modifyTime.getDayOfMonth())
+                .filter(key -> key.toLocalDate().equals(modifyTime.toLocalDate()))
                 .findFirst();
 
         if (found.isEmpty()) {
             //새로 만들어서 넣기
-            Status newStatus = attend(modifyTime);
-            return new ModifyAttendResultDTO(null, Status.ABSENT, modifyTime, newStatus);
+            attend(modifyTime);
+            return;
         }
 
         // 있는 경우는 해당 키 삭제하고 modifyTime으로 다시 넣고 출석 상태로 바꾸기
@@ -140,9 +159,7 @@ public class Crew {
         attendance.remove(beforeTime);
         minusCount(beforeStatus);
 
-        Status newStatus = attend(modifyTime);
-
-        return new ModifyAttendResultDTO(beforeTime, beforeStatus, modifyTime, newStatus);
+        attend(modifyTime);
     }
 
     private void minusCount(Status beforeStatus) {
@@ -161,58 +178,27 @@ public class Crew {
         }
     }
 
-    public AttendRecordDTO getAttendanceRecord(LocalDateTime now) {
+    public boolean isExpelledRisk() {
+        int lateToAbsent = late / 3;
 
-        List<AttendResultDTO> records = new ArrayList<>();
+        int absentValue = absent + lateToAbsent;
 
-        /// 실제로는 now 값 사용해야 하지만 문제를 26년 1월에 풀다보니 생기는 에러로 24년 12월 14일로 하드코딩
-        // 2일 부터 오늘까지
-        for (int i = 2; i <= 13; i++) {
-            LocalDate today = LocalDate.of(2024, 12, i);
-
-            if(isMatch(today)) {
-                LocalDateTime time = getTime(today);
-
-                LocalTime localTime = time.toLocalTime();
-
-                if (localTime.getHour() == 0 && localTime.getMinute() == 0) {
-                    records.add(new AttendResultDTO(time, attendance.get(time), false));
-                    continue;
-                }
-
-                records.add(new AttendResultDTO(time, attendance.get(time), true));
-            }
-        }
-
-        // 14일에 해당하는 기록 가져오기
-        boolean match = isMatch(LocalDate.of(2024, 12, 14));
-        if (match) {
-            LocalDateTime time = getTime(LocalDate.of(2024, 12, 13));
-            records.add(new AttendResultDTO(time, attendance.get(time), true));
-        }
-
-        String stringStudentStatus = "";
-        if (studentStatus != null) {
-            stringStudentStatus = studentStatus.getStatus();
-        }
-
-        return new AttendRecordDTO(name, records, attend, late, absent, stringStudentStatus);
+        return 2<= absentValue;
     }
 
-    private LocalDateTime getTime(LocalDate today) {
-        return attendance.keySet().stream()
-                .filter(key ->
-                        key.getYear() == today.getYear()
-                                && key.getMonth() == today.getMonth()
-                                && key.getDayOfMonth() == today.getDayOfMonth())
-                .findFirst().get();
+    public int calculateAbsentValue() {
+
+        int lateToAbsent = late / 3;
+
+        return absent + lateToAbsent;
     }
 
-    private boolean isMatch(LocalDate today) {
+    public boolean isMatch(LocalDate today) {
         return attendance.keySet().stream()
-                .anyMatch(key ->
-                        key.getYear() == today.getYear()
-                                && key.getMonth() == today.getMonth()
-                                && key.getDayOfMonth() == today.getDayOfMonth());
+                .anyMatch(key -> key.toLocalDate().equals(today));
+    }
+
+    public StudentStatus getStudentStatus() {
+        return studentStatus;
     }
 }

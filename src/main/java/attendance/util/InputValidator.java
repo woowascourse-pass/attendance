@@ -1,6 +1,7 @@
 package attendance.util;
 
 import attendance.message.ErrorMessage;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 public class InputValidator {
@@ -41,9 +42,9 @@ public class InputValidator {
     }
 
     public static void validateTime(LocalDateTime now, int date) {
-        /// 실제로는 now 값 사용해야 하지만 문제를 26년 1월에 풀다보니 생기는 에러로 24년 12월 14일로 하드코딩
-        LocalDateTime localDateTime = LocalDateTime.of(2024, 12, 14, 0, 0);
-        if (localDateTime.getDayOfMonth() < date) {
+        /// 실제로는 time 값 사용해야 하지만 문제를 26년 1월에 풀다보니 생기는 에러로 24년 12월 14일로 하드코딩
+        LocalDate today = now.toLocalDate();
+        if (today.getDayOfMonth() < date) {
             throw new IllegalArgumentException(ErrorMessage.FUTURE_ATTEND_NOT_POSSIBLE.getMessage());
         }
     }
